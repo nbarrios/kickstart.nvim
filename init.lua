@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -742,7 +742,7 @@ require('lazy').setup({
     cmd = { 'ConformInfo' },
     keys = {
       {
-        '<leader>f',
+        '<leader>F',
         function()
           require('conform').format { async = true, lsp_format = 'fallback' }
         end,
@@ -904,6 +904,8 @@ require('lazy').setup({
   { -- Collection of various small independent plugins/modules
     'echasnovski/mini.nvim',
     config = function()
+      require('mini.icons').setup()
+      require('mini.animate').setup()
       -- Better Around/Inside textobjects
       --
       -- Examples:
@@ -926,13 +928,26 @@ require('lazy').setup({
       -- set use_icons to true if you have a Nerd Font
       statusline.setup { use_icons = vim.g.have_nerd_font }
 
-      -- You can configure sections in the statusline by overriding their
       -- default behavior. For example, here we set the section for
       -- cursor location to LINE:COLUMN
       ---@diagnostic disable-next-line: duplicate-set-field
       statusline.section_location = function()
         return '%2l:%-2v'
       end
+
+      require('mini.files').setup()
+
+      -- Set mini.files keybinds
+      vim.keymap.set('n', '<leader>fm', function()
+        require('mini.files').open(vim.api.nvim_buf_get_name(0), true)
+      end, { desc = 'Open mini.files (Directory of Current File)' })
+
+      vim.keymap.set('n', '<leader>fM', function()
+        require('mini.files').open(vim.uv.cwd(), true)
+      end, { desc = 'Open mini.files (cwd)' })
+
+      require('mini.tabline').setup()
+      require('mini.sessions').setup()
 
       -- ... and there is more!
       --  Check out: https://github.com/echasnovski/mini.nvim
@@ -1010,6 +1025,35 @@ require('lazy').setup({
       lazy = '💤 ',
     },
   },
+})
+
+vim.api.nvim_set_keymap('i', 'jk', '<Esc>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<S-h>', '<cmd>bprevious<cr>', { desc = 'Prev Buffer' })
+vim.api.nvim_set_keymap('n', '<S-l>', '<cmd>bnext<cr>', { desc = 'Next Buffer' })
+
+-- Enable autoread
+vim.opt.autoread = true
+
+-- Trigger `checktime` when files change on disk
+vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold', 'CursorHoldI' }, {
+  pattern = '*',
+  callback = function()
+    if vim.api.nvim_get_mode().mode ~= 'c' then
+      vim.cmd 'checktime'
+    end
+  end,
+  desc = 'Check for file changes on various events', -- Optional: add a description
+})
+
+-- Notification after file change
+vim.api.nvim_create_autocmd('FileChangedShellPost', {
+  pattern = '*',
+  callback = function()
+    vim.cmd 'echohl WarningMsg'
+    vim.cmd 'echo "File changed on disk. Buffer reloaded."'
+    vim.cmd 'echohl None'
+  end,
+  desc = 'Notify after file has changed on disk', -- Optional: add a description
 })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
